@@ -1,6 +1,5 @@
 fastapi==0.115.12
 neuro==0.4.dev4
 numpy==1.21.0
-opencv_python==4.11.0.86
-opencv_python_headless==4.11.0.86
-skimage==0.19.0
+opencv-python-headless==4.11.0.86
+scikit-image==0.19.0
