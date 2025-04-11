@@ -1,0 +1,77 @@
+name: Docker Build & Deploy
+
+on:
+  push:
+    branches: [ master ]
+
+env:
+  CONTAINER_NAME: analyzer-client
+  CONTAINER_PORT: 8000
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get short SHA
+        id: vars
+        run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Build Docker Image with unique tag
+        run: |
+          docker build -t $CONTAINER_NAME:${{ env.SHORT_SHA }} .
+
+      - name: Stop and remove containers using old images of the same container (excluding current)
+        run: |
+          current_image_id=$(docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | \
+            grep "^$CONTAINER_NAME:${{ env.SHORT_SHA }}" | awk '{ print $2 }')
+          
+          # Get containers using $CONTAINER_NAME images excluding current SHA
+          docker ps -a --format '{{.ID}} {{.Image}}' | while read container_id image_ref; do
+            image_id=$(docker inspect --format='{{.Image}}' "$container_id")
+            if [ "$image_id" != "$current_image_id" ]; then
+              echo "Stopping and removing container $container_id using old image $image_id"
+              docker stop "$container_id" || true
+              docker rm "$container_id" || true
+            fi
+          done
+
+      - name: Run new container
+        run: |
+          docker run -d --name $CONTAINER_NAME-${{ env.SHORT_SHA }} --network=backend -e ENV=prod -p $CONTAINER_PORT:$CONTAINER_PORT $CONTAINER_NAME:${{ env.SHORT_SHA }}
+
+      - name: Remove old images of the same container (keep current)
+        run: |
+          current_image_id=$(docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | \
+            grep "^$CONTAINER_NAME:${{ env.SHORT_SHA }}" | awk '{ print $2 }')
+          
+          docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | \
+          grep "^$CONTAINER_NAME:" | \
+          grep -v ":${{ env.SHORT_SHA }}" | \
+          awk '{ print $2 }' | \
+          grep -v "$current_image_id" | \
+          xargs -r docker rmi -f
+
+      - name: Remove all stopped containers with same name
+        run: |
+          docker ps -a --filter "name=$CONTAINER_NAME" --filter "status=exited" -q | \
+          xargs -r docker rm
+
+      - name: Truncate container logs
+        run: |
+          CONTAINER_ID=$(docker ps -aqf "name=$CONTAINER_NAME")
+          if [ -n "$CONTAINER_ID" ]; then
+            LOG_FILE="/var/lib/docker/containers/$CONTAINER_ID/${CONTAINER_ID}-json.log"
+            if [ -f "$LOG_FILE" ]; then
+              sudo truncate -s 0 "$LOG_FILE"
+            fi
+          fi
+
+      - name: Cleanup unused Docker resources
+        run: docker system prune -f --volumes
+
+      - name: Cleanup old dangling images
+        run: docker image prune -f
