@@ -7,8 +7,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install uvicorn && \  # Явная установка uvicorn
+RUN pip install --no-cache-dir -r requirements.txt uvicorn && \
     pip list | grep uvicorn  # Проверка установки
 
 COPY . .
@@ -17,4 +16,4 @@ RUN which uvicorn && ls -la $(which uvicorn)
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
