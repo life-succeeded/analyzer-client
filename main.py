@@ -8,7 +8,7 @@ from analyzer import inspect_photo_quality
 
 app = FastAPI()
 
-@app.post("/process/image/")
+@app.post("/process-image")
 async def process_image(file: UploadFile = File(...)):
     if not file.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail="Файл должен быть изображением")
