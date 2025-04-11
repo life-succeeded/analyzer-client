@@ -4,7 +4,7 @@ import numpy as np
 from fastapi.responses import JSONResponse
 import json
 
-from neuro import inspect_photo_quality
+from analyzer import inspect_photo_quality
 
 app = FastAPI()
 
