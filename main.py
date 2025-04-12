@@ -1,12 +1,12 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
 import cv2
 import numpy as np
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
-import json
 
 from analyzer import inspect_photo_quality
 
 app = FastAPI()
+
 
 @app.post("/process-image")
 async def process_image(file: UploadFile = File(...)):

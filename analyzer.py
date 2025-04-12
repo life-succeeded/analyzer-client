@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from skimage.metrics import structural_similarity as ssim
 
 
 def is_blurry(image, threshold=100):
@@ -20,7 +19,7 @@ def has_jpeg_artifacts(image, threshold=0.3):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     s_channel = hsv[:, :, 1]
     laplacian = cv2.Laplacian(s_channel, cv2.CV_64F)
-    artifact_score = np.mean(laplacian**2)
+    artifact_score = np.mean(laplacian ** 2)
 
     return artifact_score > threshold, artifact_score
 
@@ -38,8 +37,8 @@ def inspect_photo_quality(image):
         else:
             print("✅ Изображение нормального качества.")
 
-        return (is_blurred, f"{blur_score:.2f}", f"{artifact_score:.2f}", False)
+        return is_blurred, f"{blur_score:.2f}", f"{artifact_score:.2f}", False
 
     except Exception as e:
         print(f"Ошибка: {e}")
-        return (True, "", "", True)
+        return True, "", "", True
